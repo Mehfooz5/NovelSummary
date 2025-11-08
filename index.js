@@ -20,12 +20,12 @@ app.use(bodyParser.json());
 // ✅ for serving HTML/CSS
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname))); // serves index.html & style.css
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ default route so browser loads frontend
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 // ✅ Initialize Google Gemini AI client (reads GEMINI_API_KEY from env)
 const ai = new GoogleGenAI({});
