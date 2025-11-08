@@ -5,8 +5,10 @@ import bodyParser from 'body-parser';
 import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-// ✅ Use puppeteer-core instead of puppeteer
+// ✅ puppeteer-core instead of full puppeteer
 import puppeteer from 'puppeteer-core';
+
+// ✅ bundled Chromium for serverless hosts
 import chromium from 'chrome-aws-lambda';
 
 import dotenv from 'dotenv';
@@ -20,7 +22,7 @@ puppeteerExtra.use(StealthPlugin());
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ Static frontend
+// ✅ serve frontend
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -32,9 +34,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ✅ Google Gemini init
+// ✅ Gemini init
 const ai = new GoogleGenAI({});
 
+// ✅ chunk splitting
 function chunkText(s, chunkSize = 6000) {
   const chunks = [];
   for (let i = 0; i < s.length; i += chunkSize) {
@@ -43,52 +46,41 @@ function chunkText(s, chunkSize = 6000) {
   return chunks;
 }
 
+// ✅ Gemini summarizer
 async function summarizeLongText(fullText) {
   const chunks = chunkText(fullText);
   const chunkSummaries = [];
 
   for (let i = 0; i < chunks.length; i++) {
-    const prompt = `
-You are summarizing part ${i + 1} of a novel chapter.
-Write 5-8 bullet points capturing:
-
-- Main plot events
-- Character interactions & emotional shifts
-- Clues / foreshadowing
-- Important world-building
-- How this connects to earlier or later events
-
-TEXT:
----
-${chunks[i]}
----`;
-
     const resp = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
+      contents: `
+You are summarizing part ${i + 1} of a novel chapter.
+Write bullet points covering:
+- Main events
+- Character interactions & emotions
+- Clues / foreshadowing
+- World-building
+TEXT:
+${chunks[i]}
+`,
     });
 
     chunkSummaries.push(resp.text.trim());
   }
 
-  const finalPrompt = `
-Combine the chunk summaries into a 300-400 word chapter summary.
-Keep chronology, characters, major events, conflicts, world details.
-No repetition. No new invented content.
-
-Chunks:
-${chunkSummaries.join('\n')}
-  `;
-
   const finalResp = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: finalPrompt,
+    contents: `
+Combine all summaries into a final chapter summary:
+${chunkSummaries.join('\n')}
+    `,
   });
 
   return finalResp.text.trim();
 }
 
-// ✅ Scraper route
+// ✅ SCRAPER
 app.get('/scrape', async (req, res) => {
   let browser;
   try {
@@ -97,7 +89,7 @@ app.get('/scrape', async (req, res) => {
       return res.json({ success: false, error: "URL missing. Use /scrape?url=CHAPTER_URL" });
     }
 
-    // ✅ Render-safe headless Puppeteer
+    // ✅ Render / serverless safe launch
     browser = await puppeteer.launch({
       executablePath: await chromium.executablePath,
       args: chromium.args,
@@ -105,6 +97,7 @@ app.get('/scrape', async (req, res) => {
     });
 
     const page = await browser.newPage();
+
     await page.setExtraHTTPHeaders({
       'user-agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -148,6 +141,4 @@ app.get('/scrape', async (req, res) => {
   }
 });
 
-app.listen(port, () =>
-  console.log(`✅ Server running at http://localhost:${port}`)
-);
+app.listen(port, () => console.log(`✅ Server running at http://localhost:${port}`));
