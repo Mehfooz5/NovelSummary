@@ -1,10 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+
 import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+// ✅ Use puppeteer-core instead of puppeteer
 import puppeteer from 'puppeteer-core';
 import chromium from 'chrome-aws-lambda';
+
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
