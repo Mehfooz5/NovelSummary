@@ -51,7 +51,7 @@ async function loadSummary() {
 
   document.getElementById("output").innerText = "Loading...";
 
-  const res = await fetch(`http://localhost:3000/scrape?url=${encodeURIComponent(url)}`);
+const res = await fetch(`/scrape?url=${encodeURIComponent(url)}`);
   const data = await res.json();
 
   if (!data.success) {
