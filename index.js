@@ -1,23 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import puppeteer from 'puppeteer-extra';
+import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import puppeteer from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
-import { fileURLToPath } from 'url';   // ✅ added
+import { fileURLToPath } from 'url';
 
 dotenv.config();
-puppeteer.use(StealthPlugin());
+puppeteerExtra.use(StealthPlugin());
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// ✅ Static frontend
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ for serving HTML/CSS
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, 'public')));
@@ -26,11 +28,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-
-// ✅ Initialize Google Gemini AI client (reads GEMINI_API_KEY from env)
+// ✅ Google Gemini init
 const ai = new GoogleGenAI({});
 
-// ---- Chunking system for long chapters ----
 function chunkText(s, chunkSize = 6000) {
   const chunks = [];
   for (let i = 0; i < s.length; i += chunkSize) {
@@ -39,24 +39,20 @@ function chunkText(s, chunkSize = 6000) {
   return chunks;
 }
 
-// ✅ Summarize using Google Gemini
 async function summarizeLongText(fullText) {
   const chunks = chunkText(fullText);
-
   const chunkSummaries = [];
+
   for (let i = 0; i < chunks.length; i++) {
     const prompt = `
 You are summarizing part ${i + 1} of a novel chapter.
 Write 5-8 bullet points capturing:
 
-- Main plot events happening in this section
-- Important character interactions and emotional shifts
-- Any reveals, hidden clues, or foreshadowing
-- World-building or lore details that matter later
-- How this section connects to earlier or later events
-
-Do NOT rewrite creatively or add your own ideas.
-Only summarize information from the given text.
+- Main plot events
+- Character interactions & emotional shifts
+- Clues / foreshadowing
+- Important world-building
+- How this connects to earlier or later events
 
 TEXT:
 ---
@@ -72,24 +68,13 @@ ${chunks[i]}
   }
 
   const finalPrompt = `
-You will receive multiple chunk summaries.  
-Combine them into a single coherent 300-400 word chapter summary.
+Combine the chunk summaries into a 300-400 word chapter summary.
+Keep chronology, characters, major events, conflicts, world details.
+No repetition. No new invented content.
 
-Requirements:
-- Maintain chronological order
-- Include major plot events and consequences
-- Keep key character interactions, conflicts, and emotional changes
-- Include hidden clues / foreshadowing
-- Include important world-building or lore
-- Do not repeat, over-condense, or invent new details
-
-Chunk Summaries:
----
+Chunks:
 ${chunkSummaries.join('\n')}
----
-
-Output ONLY the final summary.
-`;
+  `;
 
   const finalResp = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
@@ -108,10 +93,11 @@ app.get('/scrape', async (req, res) => {
       return res.json({ success: false, error: "URL missing. Use /scrape?url=CHAPTER_URL" });
     }
 
+    // ✅ Render-safe headless Puppeteer
     browser = await puppeteer.launch({
-      headless: false,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: null,
+      executablePath: await chromium.executablePath,
+      args: chromium.args,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
@@ -126,12 +112,10 @@ app.get('/scrape', async (req, res) => {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#chr-content', { timeout: 15000 });
 
-    // ✅ Extract paragraphs
     const paragraphs = await page.$$eval('#chr-content p', (els) =>
       els.map((e) => e.innerText.trim()).filter((t) => t.length > 0)
     );
 
-    // ✅ Extract Next & Previous chapter URLs
     const chapterLinks = await page.$$eval('.btn-group a', (links) => {
       let prev = null, next = null;
       links.forEach((l) => {
@@ -143,10 +127,7 @@ app.get('/scrape', async (req, res) => {
 
     await browser.close();
 
-    const fullText = paragraphs.join('\n');
-
-    // ✅ Google Gemini summary
-    const summary = await summarizeLongText(fullText);
+    const summary = await summarizeLongText(paragraphs.join('\n'));
 
     res.json({
       success: true,
@@ -154,7 +135,7 @@ app.get('/scrape', async (req, res) => {
       summary,
       prevChapter: chapterLinks.prev,
       nextChapter: chapterLinks.next,
-      currentUrl: url
+      currentUrl: url,
     });
 
   } catch (error) {
