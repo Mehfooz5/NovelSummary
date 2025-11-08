@@ -1,0 +1,113 @@
+/* Base Dark Theme */
+body.dark-theme {
+  background: #0b0b0b;
+  color: #e8e8e8;
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Center Container */
+.reader-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px 25px;
+  background: #111;
+  min-height: 100vh;
+}
+
+/* Title */
+.title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
+/* Input + Main Button */
+.controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 25px;
+}
+
+input {
+  width: 70%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #1b1b1b;
+  color: white;
+}
+
+/* ✅ Buttons in lavender */
+.btn {
+  background: rgb(187, 165, 225);
+  border: none;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #111;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: rgb(165, 140, 210);
+}
+
+.btn:disabled {
+  background: #4a4a4a;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* ✅ Font Controls */
+.font-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.font-btn {
+  background: rgb(187, 165, 225);
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  color: #111;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+.font-btn:hover {
+  background: rgb(165, 140, 210);
+}
+
+/* ✅ Summary Box with purple accent */
+.summary-box {
+  background: #161616;
+  padding: 25px;
+  border-left: 4px solid rgb(187, 165, 225);
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  min-height: 160px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+}
+
+/* Navigation */
+.nav-buttons {
+  margin-top: 25px;
+  text-align: center;
+}
+.nav { width: 150px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-track { background: #111; }

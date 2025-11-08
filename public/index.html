@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Novel Summarizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+<div class="reader-container">
+  
+  <h2 class="title">Novel Chapter Summarizer</h2>
+
+  <div class="controls">
+    <input id="chapterUrl" type="text" placeholder="Paste chapter URL here">
+    <button class="btn" onclick="loadSummary()">Get Summary</button>
+  </div>
+
+  <!-- ✅ FONT CONTROLS -->
+  <div class="font-controls">
+    <button class="font-btn" onclick="changeFontSize(1)">A+</button>
+    <button class="font-btn" onclick="changeFontSize(-1)">A-</button>
+    <button class="font-btn" onclick="resetFontSize()">Reset</button>
+  </div>
+
+  <div class="summary-header">
+    <h3>Summary</h3>
+  </div>
+
+  <div id="output" class="summary-box">No summary yet.</div>
+
+  <div class="nav-buttons">
+    <button id="prevBtn" class="btn nav" onclick="loadPrev()" disabled>⬅ Previous</button>
+    <button id="nextBtn" class="btn nav" onclick="loadNext()" disabled>Next ➡</button>
+  </div>
+
+</div>
+
+<script>
+let currentPrev = null;
+let currentNext = null;
+let fontSize = localStorage.getItem("fontSize") ? parseInt(localStorage.getItem("fontSize")) : 18;
+
+// ✅ Apply saved font size on load
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("output").style.fontSize = fontSize + "px";
+});
+
+async function loadSummary() {
+  const url = document.getElementById("chapterUrl").value.trim();
+  if (!url) return alert("Enter a URL.");
+
+  document.getElementById("output").innerText = "Loading...";
+
+  const res = await fetch(`http://localhost:3000/scrape?url=${encodeURIComponent(url)}`);
+  const data = await res.json();
+
+  if (!data.success) {
+    document.getElementById("output").innerText = "Error: " + data.error;
+    return;
+  }
+
+  document.getElementById("output").innerText = data.summary;
+  currentPrev = data.prevChapter;
+  currentNext = data.nextChapter;
+
+  document.getElementById("prevBtn").disabled = !currentPrev;
+  document.getElementById("nextBtn").disabled = !currentNext;
+}
+
+// ✅ Font Size Functions
+function changeFontSize(change) {
+  fontSize += change;
+  document.getElementById("output").style.fontSize = fontSize + "px";
+  localStorage.setItem("fontSize", fontSize);
+}
+
+function resetFontSize() {
+  fontSize = 18;
+  document.getElementById("output").style.fontSize = fontSize + "px";
+  localStorage.setItem("fontSize", fontSize);
+}
+
+function loadPrev() {
+  if (!currentPrev) return;
+  document.getElementById("chapterUrl").value = currentPrev;
+  loadSummary();
+}
+
+function loadNext() {
+  if (!currentNext) return;
+  document.getElementById("chapterUrl").value = currentNext;
+  loadSummary();
+}
+</script>
+
+</body>
+</html>
